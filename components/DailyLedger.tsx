@@ -18,33 +18,32 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
   const [isAdding, setIsAdding] = useState(false);
   const [viewingTx, setViewingTx] = useState<Transaction | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('NEW_SYP');
-  const [globalRate, setGlobalRate] = useState(storageService.getGlobalUsdRate());
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showSyncModal, setShowSyncModal] = useState(false);
-  const [showDeployHub, setShowDeployHub] = useState(false);
+  const [globalRate, setGlobalRate] = useState(storageService.getGlobalUsdRate());
 
-  const today = new Date();
   const dateStr = format(currentDate, 'yyyy-MM-dd');
-  const isViewingToday = format(currentDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  const isViewingToday = format(currentDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
+  // Removed undefined refreshTrigger from dependency array to fix the compile error.
   useEffect(() => {
     loadData();
   }, [user.id]);
 
   const loadData = () => {
     const all = storageService.getTransactions(user.id);
-    setTransactions([...all]);
+    setTransactions(all);
     if (onDataChange) onDataChange();
   };
 
   const startingBalance = useMemo(() => {
     return transactions
-      .filter(t => t.userId === user.id && t.date < dateStr)
+      .filter(t => t.date < dateStr)
       .reduce((acc, t) => t.type === TransactionType.INCOME ? acc + t.amount : acc - t.amount, 0);
-  }, [user.id, dateStr, transactions]);
+  }, [dateStr, transactions]);
 
   const dailyTransactions = useMemo(() => transactions.filter(t => t.date === dateStr), [transactions, dateStr]);
+  
   const dailyStats = useMemo(() => {
     return dailyTransactions.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) acc.income += t.amount;
@@ -52,9 +51,6 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
       return acc;
     }, { income: 0, expense: 0 });
   }, [dailyTransactions]);
-
-  const dailyNetChange = dailyStats.income - dailyStats.expense;
-  const dailyEndingBalance = startingBalance + dailyNetChange;
 
   const formatCurrency = (val: number, curr: Currency) => {
     let displayVal = val;
@@ -65,280 +61,145 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
   };
 
   const handleAdd = (data: any) => {
-    const newTx: Transaction = { id: `tx_${Date.now()}`, userId: user.id, ...data, date: dateStr, createdAt: Date.now() };
+    const newTx: Transaction = { 
+      id: `tx_${Date.now()}`, 
+      userId: user.id, 
+      ...data, 
+      date: dateStr, 
+      createdAt: Date.now() 
+    };
     storageService.addTransaction(newTx);
     loadData();
     setIsAdding(false);
   };
 
-  const syncUrl = useMemo(() => storageService.generateSyncUrl(), [transactions, globalRate]);
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(syncUrl);
-    alert("Sync Link Copied! Send this link to your phone or another computer to 'beam' your data there instantly.");
-  };
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const content = ev.target?.result as string;
-      if (storageService.importData(content)) {
-        window.location.reload();
-      } else {
-        alert("Invalid backup file.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
   return (
-    <div className="max-w-xl mx-auto px-4 py-14 animate-reveal">
-      <header className="flex justify-between items-center mb-12">
-        <div className="animate-reveal stagger-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tightest">Today</h1>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Cloud Ready
-          </p>
+    <div className="max-w-xl mx-auto px-4 py-8 pb-40 animate-reveal">
+      {/* Improved Header with Z-Index fix */}
+      <header className="relative z-[200] flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Daily Ledger</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Syrian Market Mode</p>
         </div>
-        <div className="flex items-center gap-2.5 animate-reveal stagger-2">
+        
+        <div className="flex items-center gap-2">
           <button 
-            onClick={() => setIsEditingRate(!isEditingRate)} 
-            className={`p-3.5 rounded-2xl transition-all duration-300 ${isEditingRate ? 'bg-indigo-600 text-white shadow-2xl rotate-12 scale-110' : 'text-slate-400 hover:bg-slate-100 hover:text-indigo-600 hover:rotate-3'}`}
+            onClick={() => setShowSettings(!showSettings)}
+            className={`p-3 rounded-2xl transition-all ${showSettings ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
           </button>
-          <div className="relative">
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className={`p-3.5 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all duration-300 ${showSettings ? 'rotate-90 text-indigo-600 bg-indigo-50' : ''}`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </button>
-            {showSettings && (
-              <div className="absolute right-0 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-[120] animate-reveal">
-                <div className="p-4 bg-slate-900 border-b border-slate-800">
-                  <p className="text-[9px] font-black text-white uppercase tracking-widest text-center">Settings & Cloud</p>
-                </div>
-                <button onClick={() => { setShowDeployHub(true); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-between group border-b border-slate-50">
-                  Go Online (Free)
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
-                </button>
-                <button onClick={() => { setShowSyncModal(true); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-between group border-b border-slate-50">
-                  QR Cloud Sync
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                </button>
-                <button onClick={() => { storageService.downloadBackup(); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-100">Download JSON</button>
-                <label className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100 block">
-                  Restore File
-                  <input type="file" className="hidden" accept=".json" onChange={handleImport} />
-                </label>
-                <button onClick={onLogout} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">Terminate</button>
+
+          {showSettings && (
+            <div className="absolute right-0 top-14 w-56 bg-white border border-slate-100 rounded-3xl shadow-2xl overflow-hidden z-[9999] animate-reveal">
+              <div className="p-3 bg-slate-50 border-b border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Settings</p>
               </div>
-            )}
-          </div>
+              <button onClick={() => setIsEditingRate(true)} className="w-full text-left px-5 py-4 text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">Exchange Rate</button>
+              <button onClick={onLogout} className="w-full text-left px-5 py-4 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-colors">Sign Out</button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Deployment Hub Modal */}
-      {showDeployHub && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-2xl animate-reveal" onClick={() => setShowDeployHub(false)}>
-          <div className="bg-white rounded-[4rem] w-full max-w-lg p-12 overflow-y-auto max-h-[90vh] shadow-3xl" onClick={e => e.stopPropagation()}>
-            <div className="text-center mb-10">
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-lg rotate-3">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
-              </div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase">Go Online for Free</h3>
-              <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Personal Cloud Deployment Guide</p>
-            </div>
-
-            <div className="space-y-6 mb-10 text-left">
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <div className="flex items-center gap-4 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-sm">1</span>
-                  <h4 className="font-black text-slate-900 text-sm uppercase">Create a GitHub Repo</h4>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed ml-12">Upload your app files to a new repository on GitHub. It's completely free and private if you want.</p>
-              </div>
-
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <div className="flex items-center gap-4 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm">2</span>
-                  <h4 className="font-black text-slate-900 text-sm uppercase">Connect to Vercel</h4>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed ml-12">Sign up for a free Hobby account at <b>Vercel.com</b> and "Import" your GitHub repo. It takes 1 minute.</p>
-              </div>
-
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <div className="flex items-center gap-4 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-black text-sm">3</span>
-                  <h4 className="font-black text-slate-900 text-sm uppercase">Set your AI Key</h4>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed ml-12">In the Vercel dashboard, go to <b>Environment Variables</b> and add your Gemini key as <b>API_KEY</b>.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <a href="https://vercel.com" target="_blank" rel="noreferrer" className="bg-slate-900 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center shadow-xl hover:scale-105 transition-transform active:scale-95">Open Vercel</a>
-              <Button fullWidth variant="ghost" onClick={() => setShowDeployHub(false)} className="!py-5">Got it!</Button>
-            </div>
-          </div>
+      {/* Date Navigation */}
+      <div className="premium-card rounded-[2.5rem] p-6 mb-8 flex items-center justify-between border-slate-100">
+        <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-3 text-slate-400 hover:text-indigo-600 transition-all"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg></button>
+        <div className="text-center">
+          <p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest">{format(currentDate, 'EEEE')}</p>
+          <h2 className="text-xl font-black text-slate-900">{format(currentDate, 'dd MMM yyyy')}</h2>
         </div>
-      )}
+        <button disabled={isViewingToday} onClick={() => setCurrentDate(addDays(currentDate, 1))} className={`p-3 ${isViewingToday ? 'opacity-0' : 'text-slate-400 hover:text-indigo-600'}`}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg></button>
+      </div>
 
-      {/* Cloud Sync Modal (QR) */}
-      {showSyncModal && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-8 bg-slate-950/80 backdrop-blur-2xl animate-reveal" onClick={() => setShowSyncModal(false)}>
-          <div className="bg-white rounded-[4rem] w-full max-w-sm p-12 text-center shadow-3xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase mb-4">Cloud Beam</h3>
-            <p className="text-xs text-slate-500 font-medium mb-8 leading-relaxed">Scan this code with your phone camera to instantly transfer your data to your mobile device.</p>
-            
-            <div className="bg-slate-50 p-6 rounded-[3rem] mb-8 flex justify-center border-2 border-slate-100 overflow-hidden">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(syncUrl)}`} 
-                alt="Sync QR Code"
-                className="w-48 h-48 rounded-2xl shadow-lg mix-blend-multiply transition-transform hover:scale-110"
-              />
-            </div>
-
-            <Button fullWidth variant="primary" onClick={handleCopyLink} className="!py-5 !rounded-2xl mb-4">Copy Cloud Link</Button>
-            <Button fullWidth variant="ghost" onClick={() => setShowSyncModal(false)}>Close</Button>
-          </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="premium-card p-6 rounded-[2.5rem] bg-indigo-600 text-white border-none shadow-xl shadow-indigo-100">
+          <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">Assets</p>
+          <p className="text-lg font-black tabular-nums truncate">{formatCurrency(startingBalance + (dailyStats.income - dailyStats.expense), displayCurrency)}</p>
         </div>
-      )}
-
-      {/* Detail Inspector Modal */}
-      {viewingTx && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-slate-950/70 backdrop-blur-xl animate-reveal" onClick={() => setViewingTx(null)}>
-          <div className="bg-white rounded-[4rem] w-full max-w-sm p-10 text-center shadow-3xl ring-1 ring-white/20" onClick={e => e.stopPropagation()}>
-            <div className={`w-24 h-24 rounded-[2.5rem] mx-auto flex items-center justify-center mb-8 text-white shadow-2xl ${viewingTx.type === TransactionType.INCOME ? 'bg-emerald-600 shadow-emerald-200' : 'bg-rose-600 shadow-rose-200'}`}>
-               <span className="text-4xl font-black">{viewingTx.type === TransactionType.INCOME ? '↓' : '↑'}</span>
-            </div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase mb-2">{viewingTx.description}</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-6">TS: {format(viewingTx.createdAt, 'HH:mm:ss')}</p>
-            
-            {viewingTx.notes && (
-              <div className="bg-slate-50 p-6 rounded-[2rem] text-left mb-6 border border-slate-100">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Details</span>
-                <p className="text-slate-700 text-sm leading-relaxed">{viewingTx.notes}</p>
-              </div>
-            )}
-
-            <div className="space-y-3 mb-10">
-               <div className="bg-slate-50 px-6 py-4 rounded-[1.5rem] flex justify-between items-center border border-slate-100">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Input</span>
-                  <span className="font-black text-slate-900">{viewingTx.originalAmount.toLocaleString()} {viewingTx.inputCurrency}</span>
-               </div>
-               <div className="bg-indigo-50/30 px-6 py-4 rounded-[1.5rem] flex justify-between items-center border border-indigo-100/50">
-                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Value</span>
-                  <span className="font-black text-indigo-900">{viewingTx.amount.toLocaleString()} <span className="text-[10px]">N.SYP</span></span>
-               </div>
-            </div>
-
-            <Button fullWidth variant="primary" onClick={() => setViewingTx(null)} className="!py-5 !rounded-[1.5rem] text-xs uppercase tracking-widest">Dismiss</Button>
-            <button onClick={() => { if(confirm("Permanently wipe this record from history?")) { storageService.deleteTransaction(viewingTx.id); loadData(); setViewingTx(null); } }} className="mt-8 text-rose-500 text-[10px] font-black uppercase tracking-[0.3em] hover:text-rose-700 transition-all opacity-40 hover:opacity-100">Wipe Data</button>
-          </div>
-        </div>
-      )}
-
-      {/* Exchange Rate Editor Overlay */}
-      {isEditingRate && (
-        <div className="mb-12 p-8 bg-white rounded-[3rem] border border-indigo-100 shadow-2xl shadow-indigo-100 animate-reveal">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-            <label className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Global Market Rate</label>
-          </div>
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-               <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$1 = </span>
-               <input 
-                type="number" 
-                defaultValue={globalRate} 
-                onBlur={(e) => {
-                  const val = parseFloat(e.target.value);
-                  if (val > 0) { storageService.setGlobalUsdRate(val); setGlobalRate(val); if (onDataChange) onDataChange(); }
-                  setIsEditingRate(false);
-                }}
-                className="w-full bg-slate-50 pl-14 pr-6 py-5 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none font-black text-xl tabular-nums transition-all"
-                autoFocus 
-              />
-            </div>
-            <Button onClick={() => setIsEditingRate(false)} className="px-8 shadow-indigo-100">Save</Button>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-12">
-        {/* Main Date Display */}
-        <div className="premium-card rounded-[3.5rem] p-10 text-center bg-white flex items-center justify-between border-slate-100/50 group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full blur-3xl -z-10 group-hover:bg-indigo-100 transition-colors"></div>
-          <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-5 text-slate-300 hover:text-indigo-600 transition-all hover:scale-125 hover:rotate-[-8deg] active:scale-90">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <div className="transition-all group-hover:scale-110">
-            <p className="text-indigo-600 font-black text-[11px] uppercase tracking-[0.5em] mb-2">{format(currentDate, 'EEEE')}</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tightest">{format(currentDate, 'dd MMM yyyy')}</h2>
-          </div>
-          <button disabled={isViewingToday} onClick={() => setCurrentDate(addDays(currentDate, 1))} className={`p-5 transition-all hover:scale-125 hover:rotate-[8deg] active:scale-90 ${isViewingToday ? 'opacity-0' : 'text-slate-300 hover:text-indigo-600'}`}>
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-
-        {/* Currency Perspective Select */}
-        <div className="flex justify-center p-2 bg-slate-200/40 backdrop-blur-md rounded-[2.5rem] w-fit mx-auto border border-slate-200/20">
-          {(['NEW_SYP', 'OLD_SYP', 'USD'] as Currency[]).map(c => (
-            <button key={c} onClick={() => setDisplayCurrency(c)} className={`px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${displayCurrency === c ? 'bg-slate-900 text-white shadow-2xl scale-105' : 'text-slate-400 hover:text-slate-600'}`}>{c.replace('_', ' ')}</button>
-          ))}
-        </div>
-
-        {/* Summary Grid */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="premium-card p-10 rounded-[3rem] bg-white flex flex-col justify-between h-40 border-slate-100">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Net Flow</span>
-            <p className={`text-3xl font-black tabular-nums tracking-tighter ${dailyNetChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{dailyNetChange > 0 ? '+' : ''}{formatCurrency(dailyNetChange, displayCurrency)}</p>
-          </div>
-          <div className="premium-card p-10 rounded-[3rem] bg-slate-900 text-white border-none shadow-3xl shadow-indigo-900/10 flex flex-col justify-between h-40">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Final Assets</span>
-            <p className="text-3xl font-black tabular-nums tracking-tighter">{formatCurrency(dailyEndingBalance, displayCurrency)}</p>
-          </div>
-        </div>
-
-        {/* Entries List */}
-        <div className="space-y-8 pb-10">
-          <div className="flex justify-between items-center px-6">
-            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.4em]">Transactions</h3>
-            <button onClick={() => setIsAdding(true)} className="bg-indigo-600 text-white px-7 py-3.5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-110 hover:-rotate-2 transition-all active:scale-95">Add Record</button>
-          </div>
-          
-          {isAdding && <div className="animate-reveal"><TransactionForm onSubmit={handleAdd} onCancel={() => setIsAdding(false)} /></div>}
-          
-          <div className="space-y-5">
-            {dailyTransactions.map(tx => (
-              <div key={tx.id} onClick={() => setViewingTx(tx)} className="premium-card p-7 rounded-[2.5rem] flex items-center justify-between cursor-pointer hover:bg-slate-50/50 group active:scale-[0.97] border-slate-100/50">
-                <div className="flex items-center gap-6">
-                  <div className={`w-16 h-16 rounded-[1.8rem] flex items-center justify-center transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 ${tx.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                    <span className="text-2xl font-black">{tx.type === TransactionType.INCOME ? '↓' : '↑'}</span>
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 uppercase text-sm tracking-tight truncate max-w-[180px] mb-1.5">{tx.description}</h4>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{tx.originalAmount.toLocaleString()} {tx.inputCurrency === 'USD' ? '$' : 'SYP'}</p>
-                  </div>
-                </div>
-                <p className={`text-2xl font-black tabular-nums tracking-tighter ${tx.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === TransactionType.INCOME ? '+' : '-'}{formatCurrency(tx.amount, displayCurrency)}</p>
-              </div>
-            ))}
-            {dailyTransactions.length === 0 && (
-              <div className="py-28 text-center border-4 border-dashed border-slate-200/40 rounded-[4rem] opacity-20 group">
-                <p className="text-[11px] font-black uppercase tracking-[0.8em] group-hover:tracking-[1em] transition-all">Pure Ledger</p>
-              </div>
-            )}
-          </div>
+        <div className="premium-card p-6 rounded-[2.5rem] bg-white border-slate-100">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Today Net</p>
+          <p className={`text-lg font-black tabular-nums truncate ${dailyStats.income - dailyStats.expense >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {dailyStats.income - dailyStats.expense >= 0 ? '+' : ''}{formatCurrency(dailyStats.income - dailyStats.expense, displayCurrency)}
+          </p>
         </div>
       </div>
+
+      {/* Transaction View Control */}
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
+        {(['NEW_SYP', 'OLD_SYP', 'USD'] as Currency[]).map(c => (
+          <button key={c} onClick={() => setDisplayCurrency(c)} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${displayCurrency === c ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>
+            {c.replace('_', ' ')}
+          </button>
+        ))}
+      </div>
+
+      {/* Transaction List */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center px-2">
+          <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Entries</h3>
+          <Button onClick={() => setIsAdding(true)} className="!py-2 !px-4 !text-[10px] uppercase tracking-widest !rounded-xl">Add Record</Button>
+        </div>
+
+        {isAdding && (
+          <div className="animate-reveal">
+            <TransactionForm onSubmit={handleAdd} onCancel={() => setIsAdding(false)} />
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {dailyTransactions.map(tx => (
+            <div key={tx.id} className="premium-card p-5 rounded-3xl flex items-center justify-between border-slate-100 hover:border-indigo-100 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${tx.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                  {tx.type === TransactionType.INCOME ? '↓' : '↑'}
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-sm truncate max-w-[140px]">{tx.description}</h4>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">{tx.originalAmount.toLocaleString()} {tx.inputCurrency}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className={`font-black text-base tabular-nums ${tx.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {tx.type === TransactionType.INCOME ? '+' : '-'}{formatCurrency(tx.amount, displayCurrency)}
+                </p>
+              </div>
+            </div>
+          ))}
+          {dailyTransactions.length === 0 && (
+            <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-[3rem] opacity-40">
+              <p className="text-[10px] font-black uppercase tracking-widest">No entries for this day</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Exchange Rate Modal */}
+      {isEditingRate && (
+        <div className="fixed inset-0 z-[1000] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl animate-reveal">
+            <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Market Rate</h3>
+            <p className="text-xs text-slate-400 font-bold mb-6">Current Value of $1 USD in New SYP</p>
+            <input 
+              type="number" 
+              defaultValue={globalRate}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value);
+                if (val > 0) {
+                  storageService.setGlobalUsdRate(val);
+                  setGlobalRate(val);
+                  loadData();
+                }
+                setIsEditingRate(false);
+              }}
+              className="w-full bg-slate-50 p-5 rounded-2xl border-2 border-indigo-100 focus:border-indigo-600 outline-none font-black text-2xl tabular-nums mb-6"
+              autoFocus
+            />
+            <Button fullWidth onClick={() => setIsEditingRate(false)}>Close Editor</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

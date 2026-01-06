@@ -11,9 +11,6 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const transactions = storageService.getTransactions(user.id);
   
-  // Robust check for the API Key
-  const hasApiKey = !!(process.env.API_KEY && process.env.API_KEY !== 'undefined');
-
   const stats = useMemo(() => {
     if (transactions.length === 0) return null;
     
@@ -50,10 +47,10 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
   }, [stats]);
 
   const runAiAnalysis = async () => {
-    if (!hasApiKey) return;
     setLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      // Corrected: Obtain API key from process.env.API_KEY as per guidelines.
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `
         Context: Personal expense tracking for a user in the Syrian market.
         Currency: Syrian Pounds (SYP).
@@ -68,14 +65,17 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
         Tone: Professional, expert financial advisor, high-end fintech.
       `;
 
+      // Corrected: Using the recommended model name and calling generateContent directly from ai.models.
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt
       });
 
+      // Corrected: Extract text using the .text property as per guidelines.
       setAnalysis(response.text || "Unable to generate insights at this time.");
     } catch (e) {
-      setAnalysis("AI Analysis failed. Please check your API Key configuration in Vercel settings.");
+      console.error("Analysis Error:", e);
+      setAnalysis("AI Analysis failed. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -145,34 +145,8 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
             <div className="h-px flex-1 bg-white/10"></div>
           </div>
           
-          {!hasApiKey ? (
-            <div className="space-y-6 animate-reveal">
-              <h2 className="text-2xl font-black tracking-tightest leading-tight">AI Key Required</h2>
-              <p className="text-slate-400 text-sm leading-relaxed font-medium">To unlock your personalized financial strategy, you need to add a free Gemini API Key to your project settings.</p>
-              
-              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
-                <div className="flex items-start gap-4">
-                  <span className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[10px]">1</span>
-                  <p className="text-[11px] font-bold text-slate-300 uppercase leading-snug">Get key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 underline decoration-indigo-400/30 hover:text-indigo-300 transition-colors">Google AI Studio</a></p>
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[10px]">2</span>
-                  <p className="text-[11px] font-bold text-slate-300 uppercase leading-snug">Add <code className="bg-white/10 px-1.5 py-0.5 rounded text-white">API_KEY</code> to Vercel Environment Variables</p>
-                </div>
-              </div>
-
-              <a 
-                href="https://aistudio.google.com/app/apikey" 
-                target="_blank" 
-                rel="noreferrer"
-                className="block w-full"
-              >
-                <Button variant="primary" className="!bg-indigo-600 !text-white w-full py-5 shadow-2xl shadow-indigo-500/30 text-xs uppercase tracking-[0.2em] font-black">
-                  Go to AI Studio
-                </Button>
-              </a>
-            </div>
-          ) : !analysis ? (
+          {/* Corrected: Removed the API key prompt logic as keys are managed externally. */}
+          {!analysis ? (
             <div className="space-y-6">
                <h2 className="text-2xl font-black tracking-tightest leading-tight">Your Financial Assistant is ready.</h2>
                <p className="text-slate-400 text-sm leading-relaxed font-medium">Get a personalized strategy for next week based on your unique Syrian market patterns.</p>

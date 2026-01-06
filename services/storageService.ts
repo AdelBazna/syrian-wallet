@@ -1,26 +1,28 @@
 
-import { Transaction, User, TransactionType } from '../types';
+import { Transaction, User } from '../types';
 
-const USERS_KEY = 'wallet_users';
-const TRANSACTIONS_KEY = 'wallet_transactions';
-const CURRENT_USER_KEY = 'wallet_current_user';
-const GLOBAL_USD_RATE_KEY = 'wallet_global_usd_rate';
+const USERS_KEY = 'wallet_v2_users';
+const TRANSACTIONS_KEY = 'wallet_v2_transactions';
+const CURRENT_USER_KEY = 'wallet_v2_current_user';
+const GLOBAL_USD_RATE_KEY = 'wallet_v2_usd_rate';
 
 export const storageService = {
   getUsers: (): User[] => {
     try {
       const data = localStorage.getItem(USERS_KEY);
-      const parsed = data ? JSON.parse(data) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return data ? JSON.parse(data) : [];
     } catch { return []; }
   },
 
   saveUser: (user: User) => {
     try {
       const users = storageService.getUsers();
-      users.push(user);
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    } catch (e) { console.error("Error saving user", e); }
+      // Only add if doesn't exist to prevent duplicates
+      if (!users.find(u => u.username === user.username)) {
+        users.push(user);
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      }
+    } catch (e) { console.error("Database Error", e); }
   },
 
   getCurrentUser: (): User | null => {
@@ -42,7 +44,6 @@ export const storageService = {
     try {
       const data = localStorage.getItem(TRANSACTIONS_KEY);
       const all: Transaction[] = data ? JSON.parse(data) : [];
-      if (!Array.isArray(all)) return [];
       return all.filter(t => t.userId === userId);
     } catch { return []; }
   },
@@ -51,19 +52,18 @@ export const storageService = {
     try {
       const data = localStorage.getItem(TRANSACTIONS_KEY);
       const all: Transaction[] = data ? JSON.parse(data) : [];
-      const updated = Array.isArray(all) ? [...all, transaction] : [transaction];
-      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
-    } catch (e) { console.error("Error adding transaction", e); }
+      all.push(transaction);
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(all));
+    } catch (e) { console.error("Database Write Error", e); }
   },
 
   deleteTransaction: (id: string) => {
     try {
       const data = localStorage.getItem(TRANSACTIONS_KEY);
       const all: Transaction[] = data ? JSON.parse(data) : [];
-      if (!Array.isArray(all)) return;
       const filtered = all.filter(t => t.id !== id);
       localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(filtered));
-    } catch (e) { console.error("Error deleting transaction", e); }
+    } catch (e) { console.error("Database Delete Error", e); }
   },
 
   getGlobalUsdRate: (): number => {
@@ -73,68 +73,5 @@ export const storageService = {
 
   setGlobalUsdRate: (rate: number) => {
     localStorage.setItem(GLOBAL_USD_RATE_KEY, rate.toString());
-  },
-
-  exportData: () => {
-    const data = {
-      transactions: localStorage.getItem(TRANSACTIONS_KEY),
-      users: localStorage.getItem(USERS_KEY),
-      rate: localStorage.getItem(GLOBAL_USD_RATE_KEY)
-    };
-    return JSON.stringify(data);
-  },
-
-  downloadBackup: () => {
-    const data = storageService.exportData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ledger_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
-
-  importData: (jsonStr: string) => {
-    try {
-      const parsed = JSON.parse(jsonStr);
-      if (parsed.transactions) localStorage.setItem(TRANSACTIONS_KEY, parsed.transactions);
-      if (parsed.users) localStorage.setItem(USERS_KEY, parsed.users);
-      if (parsed.rate) localStorage.setItem(GLOBAL_USD_RATE_KEY, parsed.rate);
-      return true;
-    } catch (e) {
-      console.error("Import failed", e);
-      return false;
-    }
-  },
-
-  // Generates a link containing the compressed data
-  generateSyncUrl: () => {
-    const data = storageService.exportData();
-    const encoded = btoa(unescape(encodeURIComponent(data)));
-    const url = new URL(window.location.href);
-    url.searchParams.set('sync', encoded);
-    return url.toString();
-  },
-
-  // Loads data from a sync link if present
-  loadFromUrl: () => {
-    const params = new URLSearchParams(window.location.search);
-    const syncData = params.get('sync');
-    if (syncData) {
-      try {
-        const decoded = decodeURIComponent(escape(atob(syncData)));
-        if (storageService.importData(decoded)) {
-          // Clear URL and reload to apply
-          const url = new URL(window.location.href);
-          url.searchParams.delete('sync');
-          window.history.replaceState({}, '', url.toString());
-          return true;
-        }
-      } catch (e) {
-        console.error("Sync link invalid", e);
-      }
-    }
-    return false;
   }
 };

@@ -16,14 +16,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanUsername = username.trim().toLowerCase();
+    
     if (isLogin) {
       const users = storageService.getUsers();
-      const user = users.find(u => u.username === username && u.password === password);
-      if (user) onLogin(user); else setError('Invalid credentials');
+      const user = users.find(u => u.username.toLowerCase() === cleanUsername && u.password === password);
+      if (user) {
+        onLogin(user);
+      } else {
+        setError('Incorrect Access Key or Username');
+      }
     } else {
       const users = storageService.getUsers();
-      if (users.some(u => u.username === username)) { setError('Taken'); return; }
-      const newUser: User = { id: Math.random().toString(36).substr(2, 9), username, password };
+      if (users.some(u => u.username.toLowerCase() === cleanUsername)) {
+        setError('Username already taken');
+        return;
+      }
+      const newUser: User = { 
+        id: `u_${Math.random().toString(36).substr(2, 9)}`, 
+        username: cleanUsername, 
+        password 
+      };
       storageService.saveUser(newUser);
       onLogin(newUser);
     }
@@ -32,30 +45,48 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#F8FAFC]">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-12 animate-reveal">
-           <div className="w-20 h-20 bg-slate-900 rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-xl rotate-3">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div className="text-center mb-10 animate-reveal">
+           <div className="w-16 h-16 bg-slate-900 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl rotate-6">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
            </div>
-           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Syrian Wallet</h1>
-           <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Private Ledger System</p>
+           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">MyWallet</h1>
+           <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Private Syrian Ledger</p>
         </div>
 
-        <div className="premium-card p-10 rounded-[3rem] animate-reveal stagger-1 bg-white">
+        <div className="premium-card p-10 rounded-[3rem] bg-white animate-reveal stagger-1">
           <form onSubmit={handleSubmit} className="space-y-6">
              <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Name</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-slate-900 outline-none font-bold transition-all" placeholder="Enter username" required />
+                <input 
+                  type="text" 
+                  value={username} 
+                  onChange={(e) => { setUsername(e.target.value); setError(''); }} 
+                  className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-600 outline-none font-bold transition-all" 
+                  placeholder="Username" 
+                  required 
+                />
              </div>
              <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Key</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-slate-900 outline-none font-bold transition-all" placeholder="••••••••" required />
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }} 
+                  className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-600 outline-none font-bold transition-all" 
+                  placeholder="Key" 
+                  required 
+                />
              </div>
-             {error && <p className="text-rose-600 text-[10px] font-black uppercase text-center">{error}</p>}
-             <Button fullWidth className="py-5 !rounded-2xl">{isLogin ? 'Enter Ledger' : 'Create Account'}</Button>
+             {error && (
+               <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl">
+                  <p className="text-rose-600 text-[9px] font-black uppercase text-center">{error}</p>
+               </div>
+             )}
+             <Button fullWidth className="py-5 !rounded-2xl">{isLogin ? 'Open Vault' : 'Initialize Account'}</Button>
           </form>
           <div className="mt-8 text-center">
-             <button onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 transition-colors tracking-widest">
-                {isLogin ? "Need access? Join" : "Have access? Enter"}
+             <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-colors tracking-widest">
+                {isLogin ? "New user? Create Ledger" : "Existing user? Login"}
              </button>
           </div>
         </div>
