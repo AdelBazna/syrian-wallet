@@ -1,0 +1,5 @@
+{
+  "name": "Syrian Wallet Ledger",
+  "description": "A personal accounting application for tracking daily income and expenses in SYP with automatic balance carryover and historical tracking.",
+  "requestFramePermissions": []
+}
