@@ -17,7 +17,6 @@ export const storageService = {
   saveUser: (user: User) => {
     try {
       const users = storageService.getUsers();
-      // Only add if doesn't exist to prevent duplicates
       if (!users.find(u => u.username === user.username)) {
         users.push(user);
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
@@ -55,6 +54,18 @@ export const storageService = {
       all.push(transaction);
       localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(all));
     } catch (e) { console.error("Database Write Error", e); }
+  },
+
+  updateTransaction: (transaction: Transaction) => {
+    try {
+      const data = localStorage.getItem(TRANSACTIONS_KEY);
+      const all: Transaction[] = data ? JSON.parse(data) : [];
+      const index = all.findIndex(t => t.id === transaction.id);
+      if (index !== -1) {
+        all[index] = transaction;
+        localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(all));
+      }
+    } catch (e) { console.error("Database Update Error", e); }
   },
 
   deleteTransaction: (id: string) => {
