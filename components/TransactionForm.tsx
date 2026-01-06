@@ -13,6 +13,7 @@ interface TransactionFormProps {
 const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, onCancel, initialData }) => {
   const [originalAmount, setOriginalAmount] = useState(initialData?.originalAmount.toString() || '');
   const [description, setDescription] = useState(initialData?.description || '');
+  const [notes, setNotes] = useState(initialData?.notes || '');
   const [type, setType] = useState<TransactionType>(initialData?.type || TransactionType.EXPENSE);
   const [currency, setCurrency] = useState<Currency>(initialData?.inputCurrency || 'NEW_SYP');
   const [usdRate, setUsdRate] = useState(storageService.getGlobalUsdRate().toString());
@@ -30,7 +31,15 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, onCancel, i
     const rate = parseFloat(usdRate) || 0;
     if (isNaN(amt) || !description) return;
     const normalized = calculateNormalized(amt, currency, rate);
-    onSubmit({ amount: normalized, originalAmount: amt, inputCurrency: currency, usdRate: currency === 'USD' ? rate : undefined, description, type });
+    onSubmit({ 
+      amount: normalized, 
+      originalAmount: amt, 
+      inputCurrency: currency, 
+      usdRate: currency === 'USD' ? rate : undefined, 
+      description, 
+      notes,
+      type 
+    });
   };
 
   return (
@@ -50,14 +59,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, onCancel, i
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Amount</label>
             <input type="number" step="any" value={originalAmount} onChange={(e) => setOriginalAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 outline-none font-bold text-lg tabular-nums transition-all" required />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Description</label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Payment for..." className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 outline-none font-bold text-lg transition-all" required />
+            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Rent, Grocery" className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 outline-none font-bold text-lg transition-all" required />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notes / Details</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add more details about this transaction..." rows={2} className="w-full bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 outline-none font-medium text-sm transition-all resize-none" />
           </div>
         </div>
 

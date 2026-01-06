@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { User, Transaction, TransactionType } from '../types';
 import { storageService } from '../services/storageService';
 import { GoogleGenAI } from "@google/genai";
@@ -11,7 +11,9 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const transactions = storageService.getTransactions(user.id);
   
-  // Local Stats Calculation
+  // Robust check for the API Key
+  const hasApiKey = !!(process.env.API_KEY && process.env.API_KEY !== 'undefined');
+
   const stats = useMemo(() => {
     if (transactions.length === 0) return null;
     
@@ -36,7 +38,6 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
     return { peakDay, peakVal: dailyTotals[peakDay], leastDay, leastVal: dailyTotals[leastDay], dailyTotals };
   }, [transactions]);
 
-  // Chart Data Preparation (Last 10 Days)
   const chartData = useMemo(() => {
     if (!stats) return [];
     const windowSize = 10;
@@ -49,9 +50,10 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
   }, [stats]);
 
   const runAiAnalysis = async () => {
+    if (!hasApiKey) return;
     setLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: (process.env as any).API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
       const prompt = `
         Context: Personal expense tracking for a user in the Syrian market.
         Currency: Syrian Pounds (SYP).
@@ -73,7 +75,7 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
 
       setAnalysis(response.text || "Unable to generate insights at this time.");
     } catch (e) {
-      setAnalysis("AI Analysis requires a valid Gemini API configuration.");
+      setAnalysis("AI Analysis failed. Please check your API Key configuration in Vercel settings.");
     } finally {
       setLoading(false);
     }
@@ -134,7 +136,7 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
         </div>
       )}
 
-      {/* Gemini Analysis */}
+      {/* Gemini Analysis Section */}
       <section className="premium-card p-10 rounded-[3rem] bg-slate-900 text-white relative overflow-hidden shadow-2xl shadow-indigo-900/20 border-none">
         <div className="absolute top-0 right-0 w-60 h-60 bg-indigo-500 rounded-full blur-[100px] opacity-20 animate-pulse"></div>
         <div className="relative z-10">
@@ -143,7 +145,34 @@ const AiInsights: React.FC<{ user: User }> = ({ user }) => {
             <div className="h-px flex-1 bg-white/10"></div>
           </div>
           
-          {!analysis ? (
+          {!hasApiKey ? (
+            <div className="space-y-6 animate-reveal">
+              <h2 className="text-2xl font-black tracking-tightest leading-tight">AI Key Required</h2>
+              <p className="text-slate-400 text-sm leading-relaxed font-medium">To unlock your personalized financial strategy, you need to add a free Gemini API Key to your project settings.</p>
+              
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+                <div className="flex items-start gap-4">
+                  <span className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[10px]">1</span>
+                  <p className="text-[11px] font-bold text-slate-300 uppercase leading-snug">Get key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 underline decoration-indigo-400/30 hover:text-indigo-300 transition-colors">Google AI Studio</a></p>
+                </div>
+                <div className="flex items-start gap-4">
+                  <span className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-black text-[10px]">2</span>
+                  <p className="text-[11px] font-bold text-slate-300 uppercase leading-snug">Add <code className="bg-white/10 px-1.5 py-0.5 rounded text-white">API_KEY</code> to Vercel Environment Variables</p>
+                </div>
+              </div>
+
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noreferrer"
+                className="block w-full"
+              >
+                <Button variant="primary" className="!bg-indigo-600 !text-white w-full py-5 shadow-2xl shadow-indigo-500/30 text-xs uppercase tracking-[0.2em] font-black">
+                  Go to AI Studio
+                </Button>
+              </a>
+            </div>
+          ) : !analysis ? (
             <div className="space-y-6">
                <h2 className="text-2xl font-black tracking-tightest leading-tight">Your Financial Assistant is ready.</h2>
                <p className="text-slate-400 text-sm leading-relaxed font-medium">Get a personalized strategy for next week based on your unique Syrian market patterns.</p>

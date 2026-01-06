@@ -22,6 +22,7 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showDeployHub, setShowDeployHub] = useState(false);
 
   const today = new Date();
   const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -74,7 +75,7 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(syncUrl);
-    alert("Cloud Sync Link copied! Open this on your other device to restore your data.");
+    alert("Sync Link Copied! Send this link to your phone or another computer to 'beam' your data there instantly.");
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,17 +97,16 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
     <div className="max-w-xl mx-auto px-4 py-14 animate-reveal">
       <header className="flex justify-between items-center mb-12">
         <div className="animate-reveal stagger-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tightest">Today's Ledger</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tightest">Today</h1>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sync Active
+            Cloud Ready
           </p>
         </div>
         <div className="flex items-center gap-2.5 animate-reveal stagger-2">
           <button 
             onClick={() => setIsEditingRate(!isEditingRate)} 
             className={`p-3.5 rounded-2xl transition-all duration-300 ${isEditingRate ? 'bg-indigo-600 text-white shadow-2xl rotate-12 scale-110' : 'text-slate-400 hover:bg-slate-100 hover:text-indigo-600 hover:rotate-3'}`}
-            title="Update Market Rate"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -121,44 +121,126 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
             </button>
             {showSettings && (
               <div className="absolute right-0 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden z-[120] animate-reveal">
-                <div className="p-4 bg-slate-50 border-b border-slate-100">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Cloud & Access</p>
+                <div className="p-4 bg-slate-900 border-b border-slate-800">
+                  <p className="text-[9px] font-black text-white uppercase tracking-widest text-center">Settings & Cloud</p>
                 </div>
-                <button onClick={() => { setShowSyncModal(true); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-between group">
-                  Cloud Sync (QR)
-                  <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                <button onClick={() => { setShowDeployHub(true); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-between group border-b border-slate-50">
+                  Go Online (Free)
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
                 </button>
-                <button onClick={() => { storageService.downloadBackup(); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-100">Download Backup</button>
+                <button onClick={() => { setShowSyncModal(true); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-between group border-b border-slate-50">
+                  QR Cloud Sync
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                </button>
+                <button onClick={() => { storageService.downloadBackup(); setShowSettings(false); }} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-100">Download JSON</button>
                 <label className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100 block">
-                  Restore from File
+                  Restore File
                   <input type="file" className="hidden" accept=".json" onChange={handleImport} />
                 </label>
-                <button onClick={onLogout} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">Sign Out</button>
+                <button onClick={onLogout} className="w-full text-left px-7 py-5 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">Terminate</button>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* Cloud Sync Modal */}
+      {/* Deployment Hub Modal */}
+      {showDeployHub && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-2xl animate-reveal" onClick={() => setShowDeployHub(false)}>
+          <div className="bg-white rounded-[4rem] w-full max-w-lg p-12 overflow-y-auto max-h-[90vh] shadow-3xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-10">
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-lg rotate-3">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
+              </div>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase">Go Online for Free</h3>
+              <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Personal Cloud Deployment Guide</p>
+            </div>
+
+            <div className="space-y-6 mb-10 text-left">
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-sm">1</span>
+                  <h4 className="font-black text-slate-900 text-sm uppercase">Create a GitHub Repo</h4>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed ml-12">Upload your app files to a new repository on GitHub. It's completely free and private if you want.</p>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm">2</span>
+                  <h4 className="font-black text-slate-900 text-sm uppercase">Connect to Vercel</h4>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed ml-12">Sign up for a free Hobby account at <b>Vercel.com</b> and "Import" your GitHub repo. It takes 1 minute.</p>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-3">
+                  <span className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-black text-sm">3</span>
+                  <h4 className="font-black text-slate-900 text-sm uppercase">Set your AI Key</h4>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed ml-12">In the Vercel dashboard, go to <b>Environment Variables</b> and add your Gemini key as <b>API_KEY</b>.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <a href="https://vercel.com" target="_blank" rel="noreferrer" className="bg-slate-900 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center shadow-xl hover:scale-105 transition-transform active:scale-95">Open Vercel</a>
+              <Button fullWidth variant="ghost" onClick={() => setShowDeployHub(false)} className="!py-5">Got it!</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cloud Sync Modal (QR) */}
       {showSyncModal && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-8 bg-slate-950/80 backdrop-blur-2xl animate-reveal" onClick={() => setShowSyncModal(false)}>
           <div className="bg-white rounded-[4rem] w-full max-w-sm p-12 text-center shadow-3xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase mb-4">Cloud Beam</h3>
-            <p className="text-xs text-slate-500 font-medium mb-8 leading-relaxed">Scan this QR code with your phone to instantly sync all your financial records without a database.</p>
+            <p className="text-xs text-slate-500 font-medium mb-8 leading-relaxed">Scan this code with your phone camera to instantly transfer your data to your mobile device.</p>
             
-            <div className="bg-slate-50 p-6 rounded-[3rem] mb-8 flex justify-center border-2 border-slate-100">
+            <div className="bg-slate-50 p-6 rounded-[3rem] mb-8 flex justify-center border-2 border-slate-100 overflow-hidden">
               <img 
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(syncUrl)}`} 
                 alt="Sync QR Code"
-                className="w-48 h-48 rounded-2xl shadow-lg mix-blend-multiply"
+                className="w-48 h-48 rounded-2xl shadow-lg mix-blend-multiply transition-transform hover:scale-110"
               />
             </div>
 
             <Button fullWidth variant="primary" onClick={handleCopyLink} className="!py-5 !rounded-2xl mb-4">Copy Cloud Link</Button>
             <Button fullWidth variant="ghost" onClick={() => setShowSyncModal(false)}>Close</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Inspector Modal */}
+      {viewingTx && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-slate-950/70 backdrop-blur-xl animate-reveal" onClick={() => setViewingTx(null)}>
+          <div className="bg-white rounded-[4rem] w-full max-w-sm p-10 text-center shadow-3xl ring-1 ring-white/20" onClick={e => e.stopPropagation()}>
+            <div className={`w-24 h-24 rounded-[2.5rem] mx-auto flex items-center justify-center mb-8 text-white shadow-2xl ${viewingTx.type === TransactionType.INCOME ? 'bg-emerald-600 shadow-emerald-200' : 'bg-rose-600 shadow-rose-200'}`}>
+               <span className="text-4xl font-black">{viewingTx.type === TransactionType.INCOME ? '↓' : '↑'}</span>
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tightest uppercase mb-2">{viewingTx.description}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-6">TS: {format(viewingTx.createdAt, 'HH:mm:ss')}</p>
             
-            <p className="mt-8 text-[9px] font-black text-indigo-400 uppercase tracking-widest">Powered by LocalSync 1.0</p>
+            {viewingTx.notes && (
+              <div className="bg-slate-50 p-6 rounded-[2rem] text-left mb-6 border border-slate-100">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Details</span>
+                <p className="text-slate-700 text-sm leading-relaxed">{viewingTx.notes}</p>
+              </div>
+            )}
+
+            <div className="space-y-3 mb-10">
+               <div className="bg-slate-50 px-6 py-4 rounded-[1.5rem] flex justify-between items-center border border-slate-100">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Input</span>
+                  <span className="font-black text-slate-900">{viewingTx.originalAmount.toLocaleString()} {viewingTx.inputCurrency}</span>
+               </div>
+               <div className="bg-indigo-50/30 px-6 py-4 rounded-[1.5rem] flex justify-between items-center border border-indigo-100/50">
+                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Value</span>
+                  <span className="font-black text-indigo-900">{viewingTx.amount.toLocaleString()} <span className="text-[10px]">N.SYP</span></span>
+               </div>
+            </div>
+
+            <Button fullWidth variant="primary" onClick={() => setViewingTx(null)} className="!py-5 !rounded-[1.5rem] text-xs uppercase tracking-widest">Dismiss</Button>
+            <button onClick={() => { if(confirm("Permanently wipe this record from history?")) { storageService.deleteTransaction(viewingTx.id); loadData(); setViewingTx(null); } }} className="mt-8 text-rose-500 text-[10px] font-black uppercase tracking-[0.3em] hover:text-rose-700 transition-all opacity-40 hover:opacity-100">Wipe Data</button>
           </div>
         </div>
       )}
@@ -257,32 +339,6 @@ const DailyLedger: React.FC<DailyLedgerProps> = ({ user, onLogout, onDataChange 
           </div>
         </div>
       </div>
-
-      {/* Detail Inspector Modal */}
-      {viewingTx && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-slate-950/70 backdrop-blur-xl animate-reveal" onClick={() => setViewingTx(null)}>
-          <div className="bg-white rounded-[4rem] w-full max-w-sm p-14 text-center shadow-3xl ring-1 ring-white/20" onClick={e => e.stopPropagation()}>
-            <div className={`w-28 h-28 rounded-[2.8rem] mx-auto flex items-center justify-center mb-10 text-white shadow-2xl ${viewingTx.type === TransactionType.INCOME ? 'bg-emerald-600 shadow-emerald-200' : 'bg-rose-600 shadow-rose-200'}`}>
-               <span className="text-5xl font-black">{viewingTx.type === TransactionType.INCOME ? '↓' : '↑'}</span>
-            </div>
-            <h3 className="text-4xl font-black text-slate-900 tracking-tightest uppercase mb-4">{viewingTx.description}</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-10">TS: {format(viewingTx.createdAt, 'HH:mm:ss')}</p>
-            
-            <div className="space-y-4 mb-12">
-               <div className="bg-slate-50 p-7 rounded-[2rem] flex justify-between items-center border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Input</span>
-                  <span className="font-black text-slate-900 text-xl">{viewingTx.originalAmount.toLocaleString()} {viewingTx.inputCurrency}</span>
-               </div>
-               <div className="bg-indigo-50/30 p-7 rounded-[2rem] flex justify-between items-center border border-indigo-100/50">
-                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Base SYP</span>
-                  <span className="font-black text-indigo-900 text-xl">{viewingTx.amount.toLocaleString()} <span className="text-xs">N.SYP</span></span>
-               </div>
-            </div>
-
-            <Button fullWidth variant="primary" onClick={() => setViewingTx(null)} className="!py-6 !rounded-[2rem] text-sm uppercase tracking-widest">Dismiss</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
